@@ -1,0 +1,83 @@
+---
+title: "Implement Drilldown Charts"
+author: "Ayush"
+format: html
+---
+
+
+```{r libs}
+#| echo: false
+#| include: false
+
+
+library(here)
+library(tidyverse)
+library(highcharter)
+library(wbstats) # population data of countries from world bank
+
+```
+
+```{r importGmpi}
+#| echo: false
+#| include: false
+#| cache: true
+
+read_csv(here("data","GMPI2022_dataviz.csv")) -> gmpi_data_all
+
+## keep only observations with MPI measure values along with world region, country and sub national region,
+## we only want that for a proof of concept to show multi level drilldown
+
+gmpi_data_all|>
+  filter(measure_lab == "MPI")|>
+  filter(area_lab == "National" | is.na(area_lab))|>
+  filter(k == 33)|>
+  select(w_region, cty_lab,ccty, region_lab, b) -> nat_sub_nat_mpi
+
+## Now we need to create a table for mpi of world regoins,
+## to do that we will need population of every country from the world bank data and then merge and calculate mpi of the world regions
+
+wb_data("SP.POP.TOTL")|>
+  filter(date == 2021)|>
+  select(iso3c, SP.POP.TOTL) -> country_pop ## 2021 pop estimates for countries
+
+nat_sub_nat_mpi|>
+  filter(is.na(region_lab))|>
+  left_join(
+    country_pop,
+    by = c("ccty" = "iso3c")
+  )|>
+  group_by(w_region)|>
+  mutate(
+    tot_w_region_pop_share = SP.POP.TOTL/sum(SP.POP.TOTL, na.rm = T)
+  )|>
+  ungroup()|>
+  mutate(
+    b_prod_pop_share = as.numeric(b)*tot_w_region_pop_share
+  )|>
+  arrange(w_region)|>
+  select(
+    -c(region_lab, SP.POP.TOTL, tot_w_region_pop_share)
+  )|>
+  group_by(w_region)|>
+  summarise(
+    mpi = sum(b_prod_pop_share)
+  ) -> w_region_mpi
+
+
+```
+
+```{r w_Region_mpi, echo=FALSE,fig.cap="population numbers from world bank data, year 2021. Calcualtions to be crossed checked"}
+
+w_region_mpi|>
+   mutate(
+     mpi = round(mpi,3),
+     w_region_abb = c("AS","EAP","ECA", "LAC","SA","SSA")
+   )-> w_region_mpi
+
+w_region_mpi|>
+  gt::gt()
+
+  
+
+```
+
