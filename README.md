@@ -18,4 +18,4 @@ The GMPI data, 2022 is used to implement this chart and the data is in the folde
 
 The code for the implementation is in a quarto file named `index.qmd`.
 
-The output is a html render of the above mentioned .qmd file and is hosted [here]().
+The output is a html render of the above mentioned .qmd file and is hosted [here](https://ayushbipinpatel.github.io/urban-doodle-OPHI-Drilldown-charts/).
