@@ -214,7 +214,7 @@ pmap(.l = list(
 
 # Status
 
-After trying to reconcile how data is structure in R and in JS, we have been able to implement a proof of concept. This means that a multistage drilldown chart is possible to create. Though the current version is not what we need, it can be used to build a chart that has stacked absolute contributions of indicators for every region at a given level. The tricky part is to inherit the stacking properties for every level and structure the data correctly. I will start working on this and update this page as we make progress.
+After trying to reconcile how data is structured in R and in JS, we have been able to implement a proof of concept. This means that a multistage drilldown chart is possible to create. Though the current version is not exactly what we need, it can be used to build a chart that has stacked absolute contributions of indicators for every region at a given level. The tricky part is to inherit the stacking properties for every level and structure the data correctly. I will start working on this and update this page as we make progress.
 
 
 ```{r CreateChart, echo=FALSE}
