@@ -247,7 +247,7 @@ highchart() %>%
 
 Though I will try and possibly achieve the exact output that is required, I believe there can be an alternative way. If we are trying to communicate the following two points :
 
-  + Incidence of poverty can very significantly in a world region or in a given country.
+  + Incidence of poverty can vary significantly in a world region or in a given country.
   + Regions/countries with the same incidence can have different intensities of poverty.
   
 I can try to create a walk through of charts that are interactive and convey the same with more ease and make these points more apparent.
