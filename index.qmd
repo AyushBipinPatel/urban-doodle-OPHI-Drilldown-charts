@@ -228,6 +228,11 @@ highchart() %>%
                 color = "#a62420",
                 name = "World Region") %>%
   hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_yAxis(
+    title = list(
+      text = "MPI (range 0 to 1)"
+    )
+  ) %>% 
   hc_drilldown(
     breadcrumbs = list(
       showFullPath = TRUE
@@ -238,3 +243,11 @@ highchart() %>%
 
 ```
 
+# Comments
+
+Though I will try and possibly achieve the exact output that is required, I believe there can be an alternative way. If we are trying to communicate the following two points :
+
+  + Incidence of poverty can very significantly in a world region or in a given country.
+  + Regions/countries with the same incidence can have different intensities of poverty.
+  
+I can try to create a walk through of charts that are interactive and convey the same with more ease and make these points more apparent.
