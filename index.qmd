@@ -2,8 +2,45 @@
 title: "Implement Drilldown Charts"
 author: "Ayush"
 format: html
+standalone: true
 ---
 
+# What is this about?
+
+We are trying to make the below shown image interactive.
+
+:::{.column-page}
+![reference image](img/refrence_img.png)
+:::
+
+# What data is used?
+
+Though the image is generated using the 2019 GMPI calculation, I had GMPI data of the year 2022. I have taken population estimates from world bank data, where latest population (year 2021) of all countries is available. This is required to calculate MPI of world region.
+
+Just for reference and clarity, the MPI of world regions was calculated using the following :
+
+$P(X) = \frac{n_{1}}{N} P(x_{1}) + \frac{n_{2}}{N} P(x_{2}) + \frac{n_{3}}{N} P(x_{3}) + ..... + \frac{n_{m}}{N} P(x_{m})$
+
+Regions $x_{1}, x_{2},.....x_{m}$ are sub regions of $X$. Where $N$ is total population of $X$ and $n_{1}, n_{2}, ... , n_{m}$ are population of the respective sub regions of $X$ such that :
+
+$N = \sum_{a=1}^{m} n_{a}$
+
+
+
+<!--
+
+First we need to prepare the data that can be used to create drilldown charts
+using the {highcharter} package.
+
+1. Get all required libraries
+
+2. import gmpi data, get required observations and columns. Then create a table to get population of countries inorder to create a table that shows mpi of world regions
+
+3. Show the table in the output for cross checking
+
+4. get data prepared for highcharts
+
+-->
 
 ```{r libs}
 #| echo: false
@@ -66,18 +103,138 @@ nat_sub_nat_mpi|>
 
 ```
 
-```{r w_Region_mpi, echo=FALSE,fig.cap="population numbers from world bank data, year 2021. Calcualtions to be crossed checked"}
+```{r w_Region_mpi, echo=FALSE,fig.cap="Population numbers from world bank data, year 2021. Calcualtions to be crossed checked"}
 
 w_region_mpi|>
    mutate(
      mpi = round(mpi,3),
      w_region_abb = c("AS","EAP","ECA", "LAC","SA","SSA")
-   )-> w_region_mpi
+   )|>
+  arrange(desc(mpi))-> w_region_mpi
 
 w_region_mpi|>
   gt::gt()
 
+```
+
+```{r PrepareHighchartsData}
+#| include: false
+
+# level 1: world regions and MPI
+
+w_region_mpi|>
+  rename(name = w_region, y = mpi, drilldown = w_region_abb)-> w_region_lvl1
+
+# level 2: country and MPI
+
+parse_WRegion_data <- function(wr){
   
+  
+  nat_sub_nat_mpi|>
+    mutate(
+      w_region_abb = case_when(
+        w_region == "South Asia" ~ "SA",
+        w_region == "Europe and Central Asia" ~ "ECA",
+        w_region == "Arab States" ~ "AS",
+        w_region == "Sub-Saharan Africa" ~ "SSA",
+        w_region == "Latin America and the Caribbean" ~ "LAC",
+        w_region == "East Asia and the Pacific" ~ "EAP"
+      ),
+      b = as.numeric(b)
+    )|>
+    filter(is.na(region_lab))|>
+    filter(w_region_abb == wr)|>
+    select(cty_lab,b)|>
+    arrange(desc(b))|>
+    rename(name = cty_lab,y=b)|>
+    mutate(
+      drilldown = paste(wr,name,sep = "_")
+    )-> intermediate_2
+  
+  list(id = wr, type = "column", data = list_parse(intermediate_2),name = "National")
+  
+}
+
+map(unique(w_region_lvl1$drilldown),parse_WRegion_data) -> nat_lvl2
+
+# level 3: subnat and MPI
+
+parse_nat_data <- function(wr,nat){
+  
+  
+  nat_sub_nat_mpi|>
+    mutate(
+      w_region_abb = case_when(
+        w_region == "South Asia" ~ "SA",
+        w_region == "Europe and Central Asia" ~ "ECA",
+        w_region == "Arab States" ~ "AS",
+        w_region == "Sub-Saharan Africa" ~ "SSA",
+        w_region == "Latin America and the Caribbean" ~ "LAC",
+        w_region == "East Asia and the Pacific" ~ "EAP"
+      ),
+      b = as.numeric(b)
+    )|>
+    filter(!is.na(region_lab))|>
+    filter(w_region_abb == wr & cty_lab == nat)|>
+    select(region_lab,b)|>
+    arrange(desc(b))|>
+    rename(name = region_lab,y=b)-> intermediate_3
+  
+  list(id = paste(wr,nat,sep = "_"), 
+       type = "column", 
+       data = list_parse(intermediate_3),
+       name = "Sub-national")
+  
+}
+
+nat_sub_nat_mpi|>
+    mutate(
+      w_region_abb = case_when(
+        w_region == "South Asia" ~ "SA",
+        w_region == "Europe and Central Asia" ~ "ECA",
+        w_region == "Arab States" ~ "AS",
+        w_region == "Sub-Saharan Africa" ~ "SSA",
+        w_region == "Latin America and the Caribbean" ~ "LAC",
+        w_region == "East Asia and the Pacific" ~ "EAP"
+      )
+    )|>
+    filter(!is.na(region_lab))|>
+  select(w_region_abb,cty_lab)|>
+  distinct() -> args_parse_nat_data
+
+pmap(.l = list(
+  wr = args_parse_nat_data|> pull(w_region_abb),
+  nat = args_parse_nat_data|> pull(cty_lab) 
+),.f = parse_nat_data) -> subnat_lvl3
+
+```
+
+<!-- highcgarts data prep is complete in chunks above this comments -->
+
+
+# Status
+
+After trying to reconcile how data is structure in R and in JS, we have been able to implement a proof of concept. This means that a multistage drilldown chart is possible to create. Though the current version is not what we need, it can be used to build a chart that has stacked absolute contributions of indicators for every region at a given level. The tricky part is to inherit the stacking properties for every level and structure the data correctly. I will start working on this and update this page as we make progress.
+
+
+```{r CreateChart, echo=FALSE}
+#| column: screen-inset
+
+
+highchart() %>%
+  hc_xAxis(type = "category") %>%
+  hc_add_series(w_region_lvl1, "column",
+                hcaes(x = name, y = y),
+                color = "#a62420",
+                name = "World Region") %>%
+  hc_plotOptions(column = list(stacking = "normal")) %>%
+  hc_drilldown(
+    breadcrumbs = list(
+      showFullPath = TRUE
+    ),
+    allowPointDrilldown = TRUE,
+    series = c(nat_lvl2,subnat_lvl3)
+  )
 
 ```
 
